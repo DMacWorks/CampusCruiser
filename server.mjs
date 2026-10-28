@@ -5,7 +5,7 @@ import path from 'node:path';
 import { timingSafeEqual } from 'node:crypto';
 
 const root = path.dirname(fileURLToPath(import.meta.url));
-const webRoot = path.join(root, 'public');
+const webRoot = path.join(root, 'docs');
 
 // Load local secrets from .env; never commit that file.
 try {
@@ -73,7 +73,8 @@ function normalize(resource, payload) {
   }));
   if (resource === 'locations') return unwrap(payload, ['locations']).map(x => ({
     id: String(x.id ?? x.locationId ?? ''), name: x.name || '', street: x.street || x.address || '',
-    streetNumber: x.streetNumber || '', postalCode: x.postalCode || '', city: x.city || '', country: x.country || 'Deutschland'
+    streetNumber: x.streetNumber || '', postalCode: x.postalCode || '', city: x.city || '', country: x.country || 'Deutschland',
+    latitude: x.latitude ?? x.lat ?? null, longitude: x.longitude ?? x.lon ?? x.lng ?? null
   }));
   if (resource === 'device-groups') return unwrap(payload, ['DeviceGroups', 'deviceGroups', 'groups']).map(x => ({
     id: String(x.id ?? ''), name: x.name || '', locationId: String(x.locationId ?? ''), members: x.members ?? null
@@ -147,7 +148,10 @@ const server = http.createServer(async (req, res) => {
     if (!filePath.startsWith(webRoot + path.sep)) return send(res, 403, { error: 'Zugriff verweigert.' });
     const body = await readFile(filePath);
     const ext = path.extname(filePath);
-    const type = ext === '.html' ? 'text/html; charset=utf-8' : ext === '.css' ? 'text/css; charset=utf-8' : 'application/octet-stream';
+    const type = ext === '.html' ? 'text/html; charset=utf-8'
+      : ext === '.css' ? 'text/css; charset=utf-8'
+      : ext === '.js' ? 'text/javascript; charset=utf-8'
+      : 'application/octet-stream';
     res.writeHead(200, { 'content-type': type, 'cache-control': 'no-store', 'x-content-type-options': 'nosniff' });
     res.end(req.method === 'HEAD' ? undefined : body);
   } catch (err) {
